@@ -35,7 +35,7 @@
     <string name="create_new_account_dialog">Create account error.\n\n</string>
     <string name="ok">Ok</string>
 
-    <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_main">My fav shops</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="nav_header_title">My fav shops</string>
@@ -48,4 +48,8 @@
     <string name="menu_tools">Tools</string>
     <string name="menu_share">Share</string>
     <string name="menu_send">Send</string>
+
+    <string name="enterName">Name</string>
+    <string name="enterType">Type</string>
+    <string name="enterRadius">Radius</string>
 </resources>

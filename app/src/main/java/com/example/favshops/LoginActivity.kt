@@ -16,12 +16,15 @@ import android.widget.TextView
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import kotlinx.android.synthetic.main.activity_login.*
 import kotlinx.android.synthetic.main.info_verify_dialog.*
 import kotlinx.android.synthetic.main.info_verify_dialog.view.*
 
 class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
+    private lateinit var database: DatabaseReference
     private lateinit var auth: FirebaseAuth
 
     public override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,8 +33,8 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
 
         signInButton.setOnClickListener(this)
         createAccountButton.setOnClickListener(this)
-//        signOutButton.setOnClickListener(this)
 
+        database = FirebaseDatabase.getInstance().reference
         auth = FirebaseAuth.getInstance()
     }
 
@@ -52,6 +55,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     val user = auth.currentUser
+                    database.child("users").child("username").setValue(user?.email)
                     updateUI(user)
                 } else {
                     val builder: AlertDialog.Builder = AlertDialog.Builder(this@LoginActivity);
@@ -82,6 +86,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                     // Sign in success, update UI with the signed-in user's information
                     val user = auth.currentUser
                     updateUI(user)
+                    Log.d("LOGIN", auth.currentUser?.uid.toString())
                 } else {
                     // If sign in fails, display a message to the user.
                     Toast.makeText(baseContext, "Authentication failed.",

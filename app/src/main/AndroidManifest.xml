@@ -24,6 +24,7 @@
                 android:name=".MainActivity"
                 android:label="@string/title_activity_main"
                 android:theme="@style/AppTheme.NoActionBar">
+
         </activity>
         <activity android:name=".LoginActivity">
             <intent-filter>
@@ -48,8 +49,6 @@
                 android:name=".MapsActivity"
                 android:label="@string/title_activity_maps">
         </activity>
-        <activity android:name=".MenuActivity">
-        </activity>
 
         <provider
                 android:name="android.support.v4.content.FileProvider"
@@ -62,6 +61,7 @@
         </provider>
 
         <activity android:name=".CameraActivity">
+
         </activity>
     </application>
 

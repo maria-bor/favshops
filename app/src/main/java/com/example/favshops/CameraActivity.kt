@@ -7,6 +7,11 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.support.v4.content.FileProvider
+import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.EditText
+import android.widget.TextView
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -62,6 +67,7 @@ class CameraActivity : AppCompatActivity() {
                 val photoFile: File? = try {
                     createImageFile()
                 } catch (ex: IOException) {
+                    Log.d("aaaaaaaaaaa", "IOException:${ex.toString()}")
                     null
                 }
 
