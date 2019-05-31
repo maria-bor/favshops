@@ -2,6 +2,7 @@ package com.example.favshops
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -17,6 +18,9 @@ import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import android.media.ExifInterface
+
+
 
 class CameraActivity : AppCompatActivity() {
 
@@ -37,24 +41,18 @@ class CameraActivity : AppCompatActivity() {
             if(resultCode == RESULT_OK) {
                 //Thumbnail
 //                val photo = data?.extras?.get("data") as? Bitmap
-//                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
-//                    val f = File(currentPhotoPath)
-//                    mediaScanIntent.data = Uri.fromFile(f)
-//                    sendBroadcast(mediaScanIntent)
-////                    setResult(MainActivity.PHOTO_REQUEST, mediaScanIntent)
-////                    finish()
-//                }
+                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
+                    val f = File(currentPhotoPath)
+                    mediaScanIntent.data = Uri.fromFile(f)
+                    sendBroadcast(mediaScanIntent)
+                }
                 val i = Intent().apply {
                     action = "com.example.favshops.PHOTO"
                     putExtra("currentPhotoPath", currentPhotoPath)
-//                    val f = File(currentPhotoPath)
-//                    photoIntent.data = Uri.fromFile(f)
-//                    putExtra(Intent.EXTRA_STREAM, Uri.fromFile(f))
-//                    type = "image/jpeg"
                 }
                 Log.d("---", "sendBroadcast")
                 sendBroadcast(i)
-//                finish()
+                finish()
             } else {
                 File(currentPhotoPath).delete()
             }
@@ -69,7 +67,7 @@ class CameraActivity : AppCompatActivity() {
         return File.createTempFile(
             "JPEG_${timeStamp}_",
             ".jpg",
-            storageDir
+            File(storageDir.absolutePath+"/shops/")
         ).apply {
             currentPhotoPath = absolutePath
         }

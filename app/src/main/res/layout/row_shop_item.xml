@@ -5,23 +5,22 @@
                                              android:layout_width="match_parent"
                                              android:layout_height="wrap_content"
                                              android:layout_margin="5dp"
-                                             android:backgroundTint="#00978383"
+                                             android:backgroundTint="#00FCF9F9"
                                              android:background="@drawable/border_shop_item">
 
     <ImageView
             android:layout_width="0dp"
-            android:layout_height="53dp" tools:srcCompat="@tools:sample/avatars" android:id="@+id/imageViewShop"
+            android:layout_height="0dp" tools:srcCompat="@tools:sample/avatars" android:id="@+id/imageViewShop"
             android:background="@drawable/border_image"
-            android:layout_marginTop="8dp"
             app:layout_constraintTop_toTopOf="parent" android:layout_marginStart="16dp"
             app:layout_constraintStart_toStartOf="parent" android:layout_marginEnd="8dp"
-            app:layout_constraintEnd_toStartOf="@+id/guideline2" android:layout_marginBottom="8dp"
+            app:layout_constraintEnd_toStartOf="@+id/guideline2"
             app:layout_constraintBottom_toTopOf="@+id/guideline3"/>
     <android.support.constraint.Guideline
             android:orientation="vertical"
             android:layout_width="0dp"
             android:layout_height="0dp" android:id="@+id/guideline1"
-            app:layout_constraintGuide_percent="0.44"/>
+            app:layout_constraintGuide_percent="0.5"/>
     <TextView
             android:text="Reserved"
             android:layout_width="0dp"
@@ -90,5 +89,5 @@
             android:orientation="vertical"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" android:id="@+id/guideline2"
-            app:layout_constraintGuide_percent="0.25"/>
+            app:layout_constraintGuide_percent="0.28"/>
 </android.support.constraint.ConstraintLayout>

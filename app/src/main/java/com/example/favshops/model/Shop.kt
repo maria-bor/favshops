@@ -8,7 +8,9 @@ import com.google.firebase.database.IgnoreExtraProperties
 data class Shop(
     val name: String? = "",
     val type: String? = "",
-    val radius: Int? = 0
+    val radius: Int? = 0,
+    val key: String? = "",
+    var hasPhoto: Boolean = false
 ) {
     @Exclude
     fun toMap(): Map<String, Any?> {
