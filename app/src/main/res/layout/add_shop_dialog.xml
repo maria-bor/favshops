@@ -4,14 +4,6 @@
                                              xmlns:tools="http://schemas.android.com/tools"
                                              android:layout_width="match_parent"
                                              android:layout_height="wrap_content">
-    <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/textView"
-            app:layout_constraintStart_toStartOf="parent" android:layout_marginStart="16dp"
-            app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="16dp"
-            app:layout_constraintTop_toTopOf="parent" android:layout_marginTop="16dp" android:text="Add shop"
-            android:textStyle="bold" android:textAlignment="center" android:textSize="18sp"
-            android:layout_marginBottom="8dp" app:layout_constraintBottom_toTopOf="@+id/editTextName"/>
     <EditText
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -19,8 +11,8 @@
             android:ems="10"
             android:id="@+id/editTextName" android:hint="@string/enterName"
             android:layout_marginEnd="16dp" app:layout_constraintEnd_toEndOf="parent" android:layout_marginStart="16dp"
-            app:layout_constraintStart_toStartOf="parent" android:layout_marginTop="8dp"
-            app:layout_constraintTop_toBottomOf="@+id/textView"/>
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="8dp" app:layout_constraintTop_toTopOf="parent"/>
     <EditText
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -42,16 +34,17 @@
             app:layout_constraintTop_toBottomOf="@+id/editTextType" android:layout_marginEnd="16dp"
             app:layout_constraintEnd_toEndOf="parent" android:layout_marginStart="16dp"
             app:layout_constraintStart_toStartOf="parent" android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/guideline_1" android:hint="@string/enterRadius"/>
+            app:layout_constraintBottom_toTopOf="@+id/guideline_1" android:hint="@string/enterRadius"
+            app:layout_constraintHorizontal_bias="0.0" app:layout_constraintVertical_bias="0.0"/>
     <android.support.constraint.Guideline
             android:orientation="horizontal"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" android:id="@+id/guideline_1"
-            app:layout_constraintGuide_begin="206dp"/>
+            app:layout_constraintGuide_begin="178dp"/>
     <android.support.constraint.Guideline
             android:orientation="vertical"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/guideline8"
+            android:layout_height="wrap_content" android:id="@+id/guideline_2"
             app:layout_constraintGuide_percent="0.50121653"/>
     <TextView
             android:text="Address"
@@ -59,32 +52,33 @@
             android:layout_height="wrap_content"
             android:id="@+id/textViewAddress" app:layout_constraintStart_toStartOf="parent"
             android:layout_marginStart="20dp"
-            app:layout_constraintEnd_toStartOf="@+id/guideline8"
+            app:layout_constraintEnd_toStartOf="@+id/guideline_2"
             android:layout_marginTop="8dp" app:layout_constraintTop_toTopOf="@+id/guideline_1"
             android:textStyle="bold" android:textAlignment="textStart" android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/guideline9"/>
+            app:layout_constraintBottom_toTopOf="@+id/guideline_3"/>
     <android.support.design.widget.FloatingActionButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:clickable="true" app:srcCompat="@drawable/outline_my_location_black_48"
-            android:id="@+id/fabMaps" app:layout_constraintStart_toStartOf="@+id/guideline8"
+            android:clickable="true" app:srcCompat="@android:drawable/ic_dialog_map"
+            android:id="@+id/fabMaps" app:layout_constraintStart_toStartOf="@+id/guideline_2"
             android:layout_marginStart="8dp" app:layout_constraintEnd_toEndOf="parent" android:layout_marginEnd="16dp"
             android:layout_marginTop="8dp" app:layout_constraintTop_toTopOf="@+id/guideline_1"
-            android:layout_marginBottom="8dp" app:layout_constraintBottom_toTopOf="@+id/guideline9"/>
+            android:layout_marginBottom="8dp" app:layout_constraintBottom_toTopOf="@+id/guideline_3"
+            app:backgroundTint="@color/colorAccent"/>
     <android.support.constraint.Guideline
             android:orientation="horizontal"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" android:id="@+id/guideline9"
+            android:layout_height="wrap_content" android:id="@+id/guideline_3"
             app:layout_constraintGuide_end="-5dp"/>
     <ImageView
             android:layout_width="100dp"
             android:layout_height="100dp" tools:srcCompat="@tools:sample/backgrounds/scenic"
-            android:id="@+id/imageView3"
-            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toStartOf="@+id/guideline8"
-            android:layout_marginEnd="8dp" app:layout_constraintTop_toTopOf="@+id/guideline9"
+            android:id="@+id/imageViewMakePhoto"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toStartOf="@+id/guideline_2"
+            android:layout_marginEnd="8dp" app:layout_constraintTop_toTopOf="@+id/guideline_3"
             app:layout_constraintHorizontal_bias="0.0"
             android:layout_marginStart="16dp" android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            app:layout_constraintBottom_toBottomOf="parent" android:background="@drawable/border_image"/>
     <android.support.design.widget.FloatingActionButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -92,7 +86,7 @@
             android:id="@+id/fabPhoto" app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginEnd="16dp"
             android:layout_marginTop="8dp"
-            app:layout_constraintTop_toTopOf="@+id/guideline9" android:layout_marginStart="8dp"
-            app:layout_constraintStart_toStartOf="@+id/guideline8" android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toBottomOf="parent"/>
+            app:layout_constraintTop_toTopOf="@+id/guideline_3" android:layout_marginStart="8dp"
+            app:layout_constraintStart_toStartOf="@+id/guideline_2" android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toBottomOf="parent" app:backgroundTint="@color/colorAccent"/>
 </android.support.constraint.ConstraintLayout>

@@ -35,7 +35,7 @@ class ShopListAdapter(private val dataset: ListShops) : RecyclerView.Adapter<Sho
         val shop: Shop = dataset.getShop(position)
         holder.nameShop.text = shop.name
         holder.typeShop.text = shop.type
-        holder.radiusShop.text = String.format("%.2f", shop.radius)
+        holder.radiusShop.text = shop.radius.toString()
     }
 
     override fun getItemCount() = dataset.size()
@@ -43,5 +43,9 @@ class ShopListAdapter(private val dataset: ListShops) : RecyclerView.Adapter<Sho
 
     fun getCollection(): ListShops {
         return dataset
+    }
+
+    fun clearDataset() {
+        dataset.getListShops().clear()
     }
 }

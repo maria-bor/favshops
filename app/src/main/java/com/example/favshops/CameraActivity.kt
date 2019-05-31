@@ -1,6 +1,7 @@
 package com.example.favshops
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
@@ -19,8 +20,9 @@ import java.util.*
 
 class CameraActivity : AppCompatActivity() {
 
-    lateinit var currentPhotoPath: String
-    val REQUEST_TAKE_PHOTO = 1
+    private lateinit var currentPhotoPath: String
+    private val REQUEST_TAKE_PHOTO = 1
+    private val photoURIForAddShop: Uri = Uri.EMPTY
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,17 +32,29 @@ class CameraActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        Log.d("---", "onActivityResult")
         if (requestCode == REQUEST_TAKE_PHOTO) {
             if(resultCode == RESULT_OK) {
                 //Thumbnail
-                //val photo = data?.extras?.get("data") as? Bitmap
-
-                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
-                    val f = File(currentPhotoPath)
-                    mediaScanIntent.data = Uri.fromFile(f)
-                    sendBroadcast(mediaScanIntent)
-
+//                val photo = data?.extras?.get("data") as? Bitmap
+//                Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->
+//                    val f = File(currentPhotoPath)
+//                    mediaScanIntent.data = Uri.fromFile(f)
+//                    sendBroadcast(mediaScanIntent)
+////                    setResult(MainActivity.PHOTO_REQUEST, mediaScanIntent)
+////                    finish()
+//                }
+                val i = Intent().apply {
+                    action = "com.example.favshops.PHOTO"
+                    putExtra("currentPhotoPath", currentPhotoPath)
+//                    val f = File(currentPhotoPath)
+//                    photoIntent.data = Uri.fromFile(f)
+//                    putExtra(Intent.EXTRA_STREAM, Uri.fromFile(f))
+//                    type = "image/jpeg"
                 }
+                Log.d("---", "sendBroadcast")
+                sendBroadcast(i)
+//                finish()
             } else {
                 File(currentPhotoPath).delete()
             }
@@ -67,7 +81,6 @@ class CameraActivity : AppCompatActivity() {
                 val photoFile: File? = try {
                     createImageFile()
                 } catch (ex: IOException) {
-                    Log.d("aaaaaaaaaaa", "IOException:${ex.toString()}")
                     null
                 }
 
