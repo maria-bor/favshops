@@ -5,7 +5,7 @@
                                              android:layout_width="match_parent"
                                              android:layout_height="wrap_content"
                                              android:layout_margin="5dp"
-                                             android:backgroundTint="#00FCF9F9"
+                                             android:backgroundTint="@color/common_google_signin_btn_text_dark_default"
                                              android:background="@drawable/border_shop_item">
 
     <ImageView

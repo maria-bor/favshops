@@ -28,6 +28,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.Toast
 import com.example.favshops.controller.ShopListAdapter
+import com.example.favshops.model.Geo
 import com.example.favshops.model.MapShops
 import com.example.favshops.model.Shop
 import com.google.android.gms.tasks.OnFailureListener
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private lateinit var database: DatabaseReference
     private lateinit var storage: StorageReference
-    private val storageDir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) // miejsce gdzie będą zapisywane zdjęcia
+    private val storageDir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
     private val shopsDirectory = File(storageDir.absolutePath+"/shops/")
 
     private lateinit var file: File
@@ -157,8 +158,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val name = value!!.name
                     val type = value.type
                     val radius = value.radius
+                    val geo: Geo? = value.geo
                     val key = ds.key
-                    var shop = Shop(name, type, radius, key)
+                    var shop = Shop(name, type, radius, geo, key)
                     var index = adapterShop.getCollection().addShop(shop)
                     Log.d("---", "Key is: " + ds.key + ",idx:"+index)
                     keyIndexMap.put(key, index)
@@ -188,14 +190,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         if(!shopsDirectory.exists()) {
             shopsDirectory.mkdirs()
-//            makeDirIfNotExist()
         }
     }
-
-//    private fun makeDirIfNotExist(): Boolean {
-//        val shopsDirectory = File(storageDir.absolutePath+"/shops/")
-//        return shopsDirectory.mkdirs()
-//    }
 
     private fun putImageFile(file: File, keyShop: String?) {
         if(keyShop == null) {
