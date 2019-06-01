@@ -52,4 +52,5 @@
     <string name="enterName">Name</string>
     <string name="enterType">Type</string>
     <string name="enterRadius">Radius</string>
+    <string name="title_activity_shop_location">Map</string>
 </resources>

@@ -5,6 +5,7 @@ import android.content.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.location.Geocoder
 import android.media.ExifInterface
 import android.net.Uri
 import android.os.Bundle
@@ -26,11 +27,13 @@ import android.view.Menu
 import android.view.View
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import com.example.favshops.controller.ShopListAdapter
 import com.example.favshops.model.Geo
 import com.example.favshops.model.MapShops
 import com.example.favshops.model.Shop
+import com.example.favshops.model.ShopLocationActivity
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.firebase.auth.FirebaseAuth
@@ -45,7 +48,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
-import java.lang.RuntimeException
+import java.util.*
+import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -59,11 +63,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     private lateinit var file: File
     private lateinit var keyIndexMap: MutableMap<String?, Int>
+    private var lat: Double = 0.0
+    private var lon: Double = 0.0
+    private lateinit var address: TextView
 
     companion object {
         const val REQUIRED = "Required"
         const val PHOTO_REQUEST = 0
         const val LOCATION_REQUEST = 1
+        val mapShops = MapShops(mutableMapOf())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,6 +93,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             val typeShop: EditText = v.findViewById(R.id.editTextType) as EditText
             val radiusShop: EditText = v.findViewById(R.id.editTextRadius) as EditText
             val imageShop: ImageView = v.findViewById(R.id.imageViewMakePhoto) as ImageView
+            address = v.findViewById(R.id.textViewAddress) as TextView
 
             val fabPhoto: FloatingActionButton = v.findViewById(R.id.fabPhoto)
             fabPhoto.setOnClickListener {
@@ -111,7 +120,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             fabLocal.setOnClickListener {
                 var intentLocation
                         = Intent(this@MainActivity, MapsActivity::class.java)
-                startActivity(intentLocation)
+                startActivityForResult(intentLocation, MainActivity.LOCATION_REQUEST)
             }
 
             builder.setView(v)
@@ -128,6 +137,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 val nameShopSend: String = nameShop.text.toString()
                 val typeShopSend: String = typeShop.text.toString()
                 val radiusShopSend: String = radiusShop.text.toString()
+//                val addressShopSend: String = address.text.toString()
+
                 if (validShopInfo(nameShop, typeShop, radiusShop)) {
                     val key = writeNewShop(uidUser, nameShopSend, typeShopSend, radiusShopSend.toInt())
                     putImageFile(file, key)
@@ -178,7 +189,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         })
 
         keyIndexMap = mutableMapOf()
-        adapterShop = ShopListAdapter(MapShops(mutableMapOf()))
+        adapterShop = ShopListAdapter(mapShops)
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
         recyclerView.adapter = adapterShop
@@ -242,6 +253,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if(requestCode == LOCATION_REQUEST && resultCode == 1) {
+            data?.let {
+                lat = it.getDoubleExtra("lat", 0.0)
+                lon = it.getDoubleExtra("lon", 0.0)
+
+                if(::address.isInitialized) {
+                    var geo = Geocoder(baseContext, Locale.getDefault())
+                    var addressToDisplay = geo.getFromLocation(lat, lon, 1)
+                    addressToDisplay[0].countryName
+                    address.text = addressToDisplay[0].thoroughfare + " " + addressToDisplay[0].locality + ", " + addressToDisplay[0].countryName
+                    address.textSize = 14f
+//                    address.text = "${lat} " + (if (lat > 0) "N" else "S") + "\n ${lon} " + (if(lon > 0) "E" else "W")
+                    Log.d("---", address.toString())
+                }
+            }
+        }
         super.onActivityResult(requestCode, resultCode, data)
         Log.d("---", "onActivityResult")
     }
@@ -281,7 +308,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             Log.d("KEY IS NULL", "TRUE")
             return null
         }
-        val shop = Shop(nameShop, typeShop, radiusShop)
+        val geo = Geo(lat, lon)
+        val shop = Shop(nameShop, typeShop, radiusShop, geo)
         val shopValues = shop.toMap()
         val childUpdates = HashMap<String, Any>()
         childUpdates["/users/$uid/$key"] = shopValues
@@ -379,7 +407,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 //
 //            }
             R.id.nav_location -> {
-                var intent: Intent = Intent(this@MainActivity, MapsActivity::class.java)
+                var intent: Intent = Intent(this@MainActivity, ShopLocationActivity::class.java)
                 startActivity(intent)
             }
             R.id.nav_logout -> {

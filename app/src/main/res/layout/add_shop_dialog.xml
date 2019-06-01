@@ -49,13 +49,14 @@
     <TextView
             android:text="Address"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             android:id="@+id/textViewAddress" app:layout_constraintStart_toStartOf="parent"
             android:layout_marginStart="20dp"
             app:layout_constraintEnd_toStartOf="@+id/guideline_2"
-            android:layout_marginTop="8dp" app:layout_constraintTop_toTopOf="@+id/guideline_1"
-            android:textStyle="bold" android:textAlignment="textStart" android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/guideline_3"/>
+            app:layout_constraintTop_toTopOf="@+id/guideline_1"
+            android:textStyle="bold" android:textAlignment="textStart"
+            app:layout_constraintBottom_toTopOf="@+id/guideline_3" android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp" android:layout_marginEnd="8dp"/>
     <android.support.design.widget.FloatingActionButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
