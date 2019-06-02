@@ -24,8 +24,8 @@ import com.google.android.gms.maps.model.MarkerOptions
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var mLocationRequest: LocationRequest? = null
-    private val UPDATE_INTERVAL = (10 * 1000).toLong()  /* 10 secs */
-    private val FASTEST_INTERVAL: Long = 2000 /* 2 sec */
+//    private val UPDATE_INTERVAL = (10 * 1000).toLong()  /* 10 secs */
+//    private val FASTEST_INTERVAL: Long = 2000 /* 2 sec */
 
     private var latitude = 0.0
     private var longitude = 0.0
@@ -52,11 +52,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             setResult(MainActivity.LOCATION_REQUEST, intent)
             finish()
         }
+
+        latitude = intent.getDoubleExtra("LAT", 0.0)
+        longitude = intent.getDoubleExtra("LON", 0.0)
     }
 
     override fun onStart() {
         super.onStart()
-        startLocationUpdates()
+        if(latitude == 0.0 && longitude == 0.0) {
+            startLocationUpdates()
+        }
     }
 
     private fun startLocationUpdates() {
@@ -64,7 +69,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mLocationRequest = LocationRequest.create()
         mLocationRequest!!.run {
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-            interval = UPDATE_INTERVAL
+//            interval = UPDATE_INTERVAL
             setNumUpdates(1)
         }
 
@@ -111,38 +116,21 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun onLocationChanged(location: Location) {
         Log.d("---", "onLocationChanged")
 
-        // create message for toast with updated latitude and longitudefa
-        var msg = "Updated Location: " + location.latitude  + " , " +location.longitude
-
         latitude = location.latitude
         longitude = location.longitude
-        // show toast message with updated location
-        //Toast.makeText(this,msg, Toast.LENGTH_LONG).show()
+
         val location = LatLng(location.latitude, location.longitude)
         mMap.clear()
         marker = mMap.addMarker(MarkerOptions().position(location).title("Current Location"))
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 12.0f))
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         Log.d("---", "onMapReady")
 
-        // Add a marker and move the camera
-//        val pjwstk = LatLng(52.2239023, 20.9917673)
-//        mMap.addMarker(MarkerOptions().position(pjwstk).title("Marker in PJWST"))
-
-//        mMap.moveCamera(CameraUpdateFactory.newLatLng(pjwstk))
         marker = mMap.addMarker(MarkerOptions().position(LatLng(latitude, longitude)).title("Current Location"))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 12.0f))
 
         mMap.setOnCameraMoveListener {
             marker.position = mMap.cameraPosition.target

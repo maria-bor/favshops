@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     getImageFile(ds.key)
                     recyclerView.adapter?.notifyItemInserted(index)
                 }
-                Log.d("aaaaaaaaaaa", "Value is: ")
+                Log.d("---", "Value is: ")
                 recyclerView.adapter?.notifyDataSetChanged()
             }
 
@@ -172,6 +172,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     imageShop.setImageBitmap(bitmap)
                 }
             }
+//            address.text = shopVal.geo?.lat.toString() + " " + shopVal.geo?.lon.toString()
+
+            lat = shopVal.geo!!.lat
+            lon = shopVal.geo!!.lon
+            var geo = Geocoder(baseContext, Locale.getDefault())
+            var addressToDisplay = geo.getFromLocation(lat, lon, 1)
+            if (addressToDisplay.size > 0) {
+                addressToDisplay[0].countryName
+                address.text =
+                    addressToDisplay[0].thoroughfare + " " + addressToDisplay[0].locality + ", " + addressToDisplay[0].countryName
+                address.textSize = 14f
+            }
+            Log.d("---edit", address.toString())
         }
 
         val fabPhoto: FloatingActionButton = v.findViewById(R.id.fabPhoto)
@@ -199,6 +212,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         fabLocal.setOnClickListener {
             var intentLocation
                     = Intent(this@MainActivity, MapsActivity::class.java)
+            if(lat != 0.0 && lon != 0.0) {
+                intentLocation.putExtra("LAT", lat)
+                intentLocation.putExtra("LON", lon)
+            }
             startActivityForResult(intentLocation, LOCATION_REQUEST)
         }
 
@@ -220,8 +237,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (validShopInfo(nameShop, typeShop, radiusShop)) {
                 val key = writeNewShop(uidUser, nameShopSend, typeShopSend, radiusShopSend.toInt(),
                     if(shopVal != null) shopVal.key else null )
-                putImageFile(file, key)
+                if (::file.isInitialized) {
+                    putImageFile(file, key)
+                }
                 showDialog.dismiss()
+                lat = 0.0
+                lon = 0.0
             }
         }
     }
@@ -289,15 +310,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 lat = it.getDoubleExtra("lat", 0.0)
                 lon = it.getDoubleExtra("lon", 0.0)
 
-                if(::address.isInitialized) {
-                    var geo = Geocoder(baseContext, Locale.getDefault())
-                    var addressToDisplay = geo.getFromLocation(lat, lon, 1)
+                var geo = Geocoder(baseContext, Locale.getDefault())
+                var addressToDisplay = geo.getFromLocation(lat, lon, 1)
+                if (addressToDisplay.size > 0) {
                     addressToDisplay[0].countryName
-                    address.text = addressToDisplay[0].thoroughfare + " " + addressToDisplay[0].locality + ", " + addressToDisplay[0].countryName
+                    address.text =
+                        addressToDisplay[0].thoroughfare + " " + addressToDisplay[0].locality + ", " + addressToDisplay[0].countryName
                     address.textSize = 14f
-//                    address.text = "${lat} " + (if (lat > 0) "N" else "S") + "\n ${lon} " + (if(lon > 0) "E" else "W")
-                    Log.d("---", address.toString())
                 }
+//                    address.text = "${lat} " + (if (lat > 0) "N" else "S") + "\n ${lon} " + (if(lon > 0) "E" else "W")
+                Log.d("---", address.toString())
             }
         }
         super.onActivityResult(requestCode, resultCode, data)
@@ -342,7 +364,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         if(key == null) {
-            Log.d("KEY IS NULL", "TRUE")
+            Log.d("---KEY IS NULL", "TRUE")
             return null
         }
         val shop = Shop(nameShop, typeShop, radiusShop, Geo(lat, lon))
@@ -352,7 +374,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         database.updateChildren(childUpdates)
 
         val renameFile = File(storageDir.absolutePath + "/shops/$key.jpg")
-        if(renameFile.absolutePath != file.absolutePath) {
+        if(::file.isInitialized && renameFile.absolutePath != file.absolutePath) {
             if (file.renameTo(renameFile)) {
                 file = renameFile
             }

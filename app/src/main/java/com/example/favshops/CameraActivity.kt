@@ -55,6 +55,7 @@ class CameraActivity : AppCompatActivity() {
                 finish()
             } else {
                 File(currentPhotoPath).delete()
+                finish()
             }
         }
         super.onActivityResult(requestCode, resultCode, data)
