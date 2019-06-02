@@ -56,6 +56,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapterShop: ShopListAdapter
 
+    private lateinit var uidUser: String
+
     private lateinit var database: DatabaseReference
     private lateinit var storage: StorageReference
     private val storageDir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
@@ -79,73 +81,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setContentView(R.layout.activity_main)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
-        var uidUser = FirebaseAuth.getInstance().currentUser?.uid
+        uidUser = FirebaseAuth.getInstance().currentUser!!.uid
 
         database = FirebaseDatabase.getInstance().reference
         storage = FirebaseStorage.getInstance().reference
 
         val fab: FloatingActionButton = findViewById(R.id.fab)
         fab.setOnClickListener { _ ->
-            val builder: AlertDialog.Builder = AlertDialog.Builder(this@MainActivity);
-            val inflater: LayoutInflater = LayoutInflater.from(this@MainActivity)
-            val v: View = inflater.inflate(R.layout.add_shop_dialog, null)
-            val nameShop: EditText = v.findViewById(R.id.editTextName) as EditText
-            val typeShop: EditText = v.findViewById(R.id.editTextType) as EditText
-            val radiusShop: EditText = v.findViewById(R.id.editTextRadius) as EditText
-            val imageShop: ImageView = v.findViewById(R.id.imageViewMakePhoto) as ImageView
-            address = v.findViewById(R.id.textViewAddress) as TextView
-
-            val fabPhoto: FloatingActionButton = v.findViewById(R.id.fabPhoto)
-            fabPhoto.setOnClickListener {
-                var intentPhoto = Intent(this@MainActivity, CameraActivity::class.java)
-                startActivity(intentPhoto)
-
-                registerReceiver(object : BroadcastReceiver() {
-                    override fun onReceive(context: Context?, intent: Intent?) {
-                        Log.d("---", "BroadcastReceiver")
-                        val path = intent?.getStringExtra("currentPhotoPath")
-                        file = File(path)
-                        if (file.exists()) {
-                            var bitmap: Bitmap = BitmapFactory.decodeFile(file.absolutePath)
-                            bitmap = rotateImage(file.absolutePath, bitmap)
-                            imageShop.setImageBitmap(bitmap)
-                            saveImageToExternalStorage(bitmap)
-                        }
-                        Log.d("---", "BroadcastReceiver"+path)
-                    }
-                }, IntentFilter("com.example.favshops.PHOTO"))
-            }
-
-            val fabLocal: FloatingActionButton = v.findViewById(R.id.fabMaps)
-            fabLocal.setOnClickListener {
-                var intentLocation
-                        = Intent(this@MainActivity, MapsActivity::class.java)
-                startActivityForResult(intentLocation, MainActivity.LOCATION_REQUEST)
-            }
-
-            builder.setView(v)
-                .setTitle("Add new shop")
-
-            builder.setPositiveButton("Ok", null)
-            builder.setNegativeButton("Cancel", ({ dialog: DialogInterface, _: Int ->
-                dialog.cancel()
-                if(::file.isInitialized && file.exists()) file.delete()
-            }))
-            val showDialog = builder.setCancelable(false).create()
-            showDialog.show()
-            showDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val nameShopSend: String = nameShop.text.toString()
-                val typeShopSend: String = typeShop.text.toString()
-                val radiusShopSend: String = radiusShop.text.toString()
-//                val addressShopSend: String = address.text.toString()
-
-                if (validShopInfo(nameShop, typeShop, radiusShop)) {
-                    val key = writeNewShop(uidUser, nameShopSend, typeShopSend, radiusShopSend.toInt())
-                    putImageFile(file, key)
-                    showDialog.dismiss()
-                }
-            }
+            showShopDialog("Add new shop")
         }
+
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
         val navView: NavigationView = findViewById(R.id.nav_view)
         val toggle = ActionBarDrawerToggle(
@@ -193,6 +138,92 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
         recyclerView.adapter = adapterShop
+        recyclerView.addOnItemTouchListener(RecyclerItemClickListener(this, recyclerView, object : RecyclerItemClickListener.OnItemClickListener {
+
+            override fun onItemClick(view: View, position: Int) {
+                showShopDialog("Edit shop", mapShops.getShop(position))
+            }
+//            override fun onItemLongClick(view: View?, position: Int) {
+//                TODO("do nothing")
+//            }
+        }))
+    }
+
+    private fun showShopDialog(titleDialog: String, shopVal: Shop? = null) {
+        val builder: AlertDialog.Builder = AlertDialog.Builder(this@MainActivity);
+        val inflater: LayoutInflater = LayoutInflater.from(this@MainActivity)
+        val v: View = inflater.inflate(R.layout.add_shop_dialog, null)
+
+        val nameShop: EditText = v.findViewById(R.id.editTextName) as EditText
+        val typeShop: EditText = v.findViewById(R.id.editTextType) as EditText
+        val radiusShop: EditText = v.findViewById(R.id.editTextRadius) as EditText
+        val imageShop: ImageView = v.findViewById(R.id.imageViewMakePhoto) as ImageView
+        address = v.findViewById(R.id.textViewAddress) as TextView
+
+        if(shopVal != null) {
+            nameShop.text.insert(0, shopVal.name)
+            typeShop.text.insert(0, shopVal.type)
+            radiusShop.text.insert(0, shopVal.radius.toString())
+            if(shopVal.hasPhoto) {
+                val path = shopsDirectory.absolutePath + "/${shopVal.key}.jpg"
+                file = File(path)
+                if (file.exists()) {
+                    var bitmap: Bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                    imageShop.setImageBitmap(bitmap)
+                }
+            }
+        }
+
+        val fabPhoto: FloatingActionButton = v.findViewById(R.id.fabPhoto)
+        fabPhoto.setOnClickListener {
+            var intentPhoto = Intent(this@MainActivity, CameraActivity::class.java)
+            startActivity(intentPhoto)
+        }
+
+        registerReceiver(object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                Log.d("---", "BroadcastReceiver")
+                val path = intent?.getStringExtra("currentPhotoPath")
+                file = File(path)
+                if (file.exists()) {
+                    var bitmap: Bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                    bitmap = rotateImage(file.absolutePath, bitmap)
+                    imageShop.setImageBitmap(bitmap)
+                    saveImageToExternalStorage(bitmap)
+                }
+                Log.d("---", "BroadcastReceiver"+path)
+            }
+        }, IntentFilter("com.example.favshops.PHOTO"))
+
+        val fabLocal: FloatingActionButton = v.findViewById(R.id.fabMaps)
+        fabLocal.setOnClickListener {
+            var intentLocation
+                    = Intent(this@MainActivity, MapsActivity::class.java)
+            startActivityForResult(intentLocation, LOCATION_REQUEST)
+        }
+
+        builder.setView(v)
+            .setTitle(titleDialog)
+
+        builder.setPositiveButton("Ok", null)
+        builder.setNegativeButton("Cancel", ({ dialog: DialogInterface, _: Int ->
+            dialog.cancel()
+            if(::file.isInitialized && file.exists()) file.delete()
+        }))
+        val showDialog = builder.setCancelable(false).create()
+        showDialog.show()
+        showDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            val nameShopSend: String = nameShop.text.toString()
+            val typeShopSend: String = typeShop.text.toString()
+            val radiusShopSend: String = radiusShop.text.toString()
+
+            if (validShopInfo(nameShop, typeShop, radiusShop)) {
+                val key = writeNewShop(uidUser, nameShopSend, typeShopSend, radiusShopSend.toInt(),
+                    if(shopVal != null) shopVal.key else null )
+                putImageFile(file, key)
+                showDialog.dismiss()
+            }
+        }
     }
 
     override fun onResume() {
@@ -302,25 +333,34 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return valid
     }
 
-    private fun writeNewShop(uid: String?, nameShop: String, typeShop: String, radiusShop: Int): String? {
-        val key = database.child("users").child("shops").push().key
+    private fun writeNewShop(uid: String?, nameShop: String, typeShop: String, radiusShop: Int, keyShop: String?): String? {
+        var key: String? = null
+        if(keyShop != null) {
+            key = keyShop
+        } else {
+            key = database.child("users").child("shops").push().key
+        }
+
         if(key == null) {
             Log.d("KEY IS NULL", "TRUE")
             return null
         }
-        val geo = Geo(lat, lon)
-        val shop = Shop(nameShop, typeShop, radiusShop, geo)
+        val shop = Shop(nameShop, typeShop, radiusShop, Geo(lat, lon))
         val shopValues = shop.toMap()
         val childUpdates = HashMap<String, Any>()
         childUpdates["/users/$uid/$key"] = shopValues
         database.updateChildren(childUpdates)
+
         val renameFile = File(storageDir.absolutePath + "/shops/$key.jpg")
-        if (file.renameTo(renameFile)) {
-            file = renameFile
+        if(renameFile.absolutePath != file.absolutePath) {
+            if (file.renameTo(renameFile)) {
+                file = renameFile
+            }
+            else {
+                Log.d("---", "CANNOT RENAME\n" + file.absoluteFile+"\npath:"+file.absolutePath)
+            }
         }
-        else {
-            Log.d("---", "CANNOT RENAME\n" + file.absoluteFile+"\npath:"+file.absolutePath)
-        }
+
         return key
     }
 

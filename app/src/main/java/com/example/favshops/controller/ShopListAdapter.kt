@@ -17,6 +17,7 @@ import java.io.File
 
 class ShopListAdapter(private val dataset: MapShops) : RecyclerView.Adapter<ShopListAdapter.ListViewHolder>() {
 
+
     class ListViewHolder(item: View) : RecyclerView.ViewHolder(item) {
         var imageShop: ImageView
         var nameShop: TextView
@@ -33,19 +34,25 @@ class ShopListAdapter(private val dataset: MapShops) : RecyclerView.Adapter<Shop
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListViewHolder {
         val li = LayoutInflater.from(parent.context)
         val view = li.inflate(R.layout.row_shop_item, parent, false)
-
         return ListViewHolder(view)
+    }
+
+    fun <T : RecyclerView.ViewHolder> T.listen(event: (position: Int, type: Int) -> Unit): T {
+        itemView.setOnClickListener {
+            event.invoke(adapterPosition, itemViewType)
+        }
+        return this
     }
 
     override fun onBindViewHolder(holder: ListViewHolder, position: Int) {
         val shop: Shop? = dataset.getShop(position)
         holder.nameShop.text = shop!!.name
-        holder.typeShop.text = shop!!.type
-        holder.radiusShop.text = shop!!.radius.toString()
+        holder.typeShop.text = shop.type
+        holder.radiusShop.text = shop.radius.toString()
 
         if (shop.hasPhoto) {
             val storageDir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-            var file = File(storageDir.absolutePath + "/shops/${shop.key}" + ".jpg")
+            val file = File(storageDir.absolutePath + "/shops/${shop.key}" + ".jpg")
             Log.d("---", "hasPhoto = true"+file.absoluteFile)
             if (file.exists()) {
                 Log.d("---", "exists()")
