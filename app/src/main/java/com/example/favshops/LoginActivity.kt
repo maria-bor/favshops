@@ -12,14 +12,10 @@ import android.text.TextUtils
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.TextView
-import com.google.firebase.auth.FirebaseAuthException
-import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.android.synthetic.main.activity_login.*
-import kotlinx.android.synthetic.main.info_verify_dialog.*
 import kotlinx.android.synthetic.main.info_verify_dialog.view.*
 
 class LoginActivity : AppCompatActivity(), View.OnClickListener {
@@ -38,12 +34,8 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         auth = FirebaseAuth.getInstance()
     }
 
-    // [START on_start_check_user]
     public override fun onStart() {
         super.onStart()
-//        // Check if user is signed in (non-null) and update UI accordingly.
-//        val currentUser = auth.currentUser
-//        updateUI(currentUser)
     }
 
     private fun createAccount(email: String, password: String) {
@@ -65,7 +57,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                     v.infoDialog.text = resources.getString(R.string.create_new_account_dialog)+task.exception!!.message
                     v.buttVerifyEmail.visibility = View.GONE
 
-                    builder.setPositiveButton(R.string.ok, ({ _: DialogInterface, _: Int -> //DialogInterface.OnClickListener
+                    builder.setPositiveButton(R.string.ok, ({ _: DialogInterface, _: Int ->
                     }))
                     builder.setView(v)
                         .setCancelable(false)
@@ -94,11 +86,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                     updateUI(null)
                 }
             }
-    }
-
-    private fun signOut() {
-        auth.signOut()
-        updateUI(null)
     }
 
     private fun sendEmailVerification() {
@@ -142,7 +129,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     private fun updateUI(user: FirebaseUser?) {
         if (user != null) {
             if (user.isEmailVerified) {
-                var intentMenu: Intent = Intent(this@LoginActivity, MainActivity::class.java)
+                val intentMenu: Intent = Intent(this@LoginActivity, MainActivity::class.java)
                 startActivity(intentMenu)
             } else {
                 val builder: AlertDialog.Builder = AlertDialog.Builder(this@LoginActivity);
@@ -154,7 +141,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                 v.buttVerifyEmail.setOnClickListener { sendEmailVerification() }
 
                 builder.setView(v)
-                builder.setPositiveButton(R.string.ok, ({ _: DialogInterface, _: Int -> //DialogInterface.OnClickListener
+                builder.setPositiveButton(R.string.ok, ({ _: DialogInterface, _: Int ->
                 }))
                 builder.setCancelable(true)
                     .create()
@@ -168,8 +155,6 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
         when (i) {
             R.id.createAccountButton -> createAccount(fieldEmail.text.toString(), fieldPassword.text.toString())
             R.id.signInButton -> signIn(fieldEmail.text.toString(), fieldPassword.text.toString())
-//            R.id.signOutButton -> signOut()
-//            R.id.buttVerifyEmail -> sendEmailVerification()
         }
     }
 }

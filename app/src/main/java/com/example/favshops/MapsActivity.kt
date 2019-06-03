@@ -24,8 +24,6 @@ import com.google.android.gms.maps.model.MarkerOptions
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var mLocationRequest: LocationRequest? = null
-//    private val UPDATE_INTERVAL = (10 * 1000).toLong()  /* 10 secs */
-//    private val FASTEST_INTERVAL: Long = 2000 /* 2 sec */
 
     private var latitude = 0.0
     private var longitude = 0.0
@@ -44,7 +42,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         fabSaveLocation = findViewById(R.id.fabSaveLocation) as FloatingActionButton
         fabSaveLocation.setOnClickListener {
-            var intent = Intent(this@MapsActivity, MainActivity::class.java)
+            val intent = Intent(this@MapsActivity, MainActivity::class.java)
             intent.apply {
                 putExtra("lat", latitude)
                 putExtra("lon", longitude)
@@ -69,7 +67,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mLocationRequest = LocationRequest.create()
         mLocationRequest!!.run {
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-//            interval = UPDATE_INTERVAL
             setNumUpdates(1)
         }
 
@@ -93,7 +90,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 onLocationChanged(locationResult!!.getLastLocation())
             }
         }
-        // 4. add permission if android version is greater then 23
+        // add permission if android version is greater then 23
         if(Build.VERSION.SDK_INT >= 23 && checkPermission()) {
             LocationServices.getFusedLocationProviderClient(this).requestLocationUpdates(mLocationRequest, locationCallback, Looper.myLooper())
         }
@@ -119,10 +116,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         latitude = location.latitude
         longitude = location.longitude
 
-        val location = LatLng(location.latitude, location.longitude)
+        val loc = LatLng(location.latitude, location.longitude)
         mMap.clear()
-        marker = mMap.addMarker(MarkerOptions().position(location).title("Current Location"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(location, 12.0f))
+        marker = mMap.addMarker(MarkerOptions().position(loc).title("Current Location"))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(loc, 12.0f))
     }
 
     override fun onMapReady(googleMap: GoogleMap) {

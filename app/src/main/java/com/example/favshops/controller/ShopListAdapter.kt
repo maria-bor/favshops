@@ -37,13 +37,6 @@ class ShopListAdapter(private val dataset: MapShops) : RecyclerView.Adapter<Shop
         return ListViewHolder(view)
     }
 
-    fun <T : RecyclerView.ViewHolder> T.listen(event: (position: Int, type: Int) -> Unit): T {
-        itemView.setOnClickListener {
-            event.invoke(adapterPosition, itemViewType)
-        }
-        return this
-    }
-
     override fun onBindViewHolder(holder: ListViewHolder, position: Int) {
         val shop: Shop? = dataset.getShop(position)
         holder.nameShop.text = shop!!.name

@@ -24,6 +24,9 @@
 
     <string name="emailpassword_title_text">Email and Password</string>
 
+    <string name="location">Location</string>
+    <string name="logout">Logout</string>
+    <string name="about">About</string>
 
     <string name="auth_failed">Authentication failed</string>
 

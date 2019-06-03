@@ -107,6 +107,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 // whenever data at this location is updated.
                 adapterShop.clearDataset()
                 keyIndexMap.clear()
+                recyclerView.adapter = adapterShop // tak trzeba bo recycler view zostaje stare zdj jak go nie ma
+
+                recyclerView.adapter?.notifyDataSetChanged()
                 for (ds in dataSnapshot.children) {
                     val value = ds.getValue(Shop::class.java)
                     val name = value!!.name
@@ -114,15 +117,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     val radius = value.radius
                     val geo: Geo? = value.geo
                     val key = ds.key
-                    var shop = Shop(name, type, radius, geo, key)
-                    var index = adapterShop.getCollection().addShop(shop)
+                    val shop = Shop(name, type, radius, geo, key)
+                    val index = adapterShop.getCollection().addShop(shop)
                     Log.d("---", "Key is: " + ds.key + ",idx:"+index)
                     keyIndexMap.put(key, index)
-                    getImageFile(ds.key)
+                    getImageFile(key)
                     recyclerView.adapter?.notifyItemInserted(index)
                 }
                 Log.d("---", "Value is: ")
-                recyclerView.adapter?.notifyDataSetChanged()
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -136,15 +138,63 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
         recyclerView.adapter = adapterShop
-        recyclerView.addOnItemTouchListener(RecyclerItemClickListener(this, recyclerView, object : RecyclerItemClickListener.OnItemClickListener {
+        recyclerView.addOnItemTouchListener(RecyclerItemClickListener(this,
+            recyclerView, object : RecyclerItemClickListener.OnItemClickListener {
 
             override fun onItemClick(view: View, position: Int) {
                 showShopDialog("Edit shop", mapShops.getShop(position), position)
             }
-//            override fun onItemLongClick(view: View?, position: Int) {
-//                TODO("do nothing")
-//            }
+            override fun onItemLongClick(view: View?, position: Int) {
+                val builder: AlertDialog.Builder = AlertDialog.Builder(this@MainActivity);
+                val inflater: LayoutInflater = LayoutInflater.from(this@MainActivity)
+                val v: View = inflater.inflate(R.layout.delete_shop_dialog, null)
+
+                builder.setView(v)
+                builder.setPositiveButton("Yes", null)
+                builder.setNegativeButton("Cancel", ({ dialog: DialogInterface, _: Int ->
+                    dialog.cancel()
+                }))
+                val deleteDialog = builder.setCancelable(false).create()
+                deleteDialog.show()
+                deleteDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    mapShops.getMapShops()[position]?.apply {
+                        val imageToDelete = storage.child("images/${this.key}")
+
+                        if(this.hasPhoto) {
+                            imageToDelete.delete()
+                                .addOnSuccessListener {
+                                    Log.d("---", "delete from storage")
+                                    val sdFile = File(shopsDirectory.absolutePath+"/${this.key}.jpg")
+                                    if (sdFile.exists()) {
+                                        sdFile.delete()
+                                        Log.d("---", "delete from sd")
+                                    }
+                                    removeFromDB(this.key)
+                                }
+                                .addOnFailureListener {
+                                    Log.d("---", "fail delete from storage")
+                                }
+                        } else {
+                            removeFromDB(this.key)
+                        }
+                    }
+                    deleteDialog.dismiss()
+                }
+            }
         }))
+    }
+
+    private fun removeFromDB(keyShop: String?) {
+        val query = database.child("users/$uidUser/$keyShop")
+        query.removeValue()
+            .addOnSuccessListener {
+                Toast.makeText(this@MainActivity, "Success to delete from database.", Toast.LENGTH_LONG).show()
+                Log.d("---", "delete from database")
+            }
+            .addOnFailureListener {
+                Toast.makeText(this@MainActivity, "Fail to delete from database: "+it.message, Toast.LENGTH_LONG).show()
+                Log.d("---", "fail delete from database")
+            }
     }
 
     private fun showShopDialog(titleDialog: String, shopVal: Shop? = null, position: Int = 0) {
@@ -263,10 +313,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val storageRef: StorageReference = storage.child("images/$keyShop")
         storageRef.putFile(fileUri)
             .addOnSuccessListener( OnSuccessListener {
-                Toast.makeText(this@MainActivity, "Success to upload image", Toast.LENGTH_LONG)
             })
             .addOnFailureListener( OnFailureListener {
-                Toast.makeText(this@MainActivity, "Fail to upload image", Toast.LENGTH_LONG)
             })
     }
 
@@ -274,20 +322,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val localFile = File(storageDir.absolutePath+"/shops/${keyShop}.jpg")
         if (localFile.exists()) {
             setHasPhoto(keyShop)
+            Log.d("---", "setHasPhotoSD, keyShop: " +keyShop)
+
             return
         }
         val storageRef: StorageReference = storage.child("images/${keyShop}")
         storageRef.getFile(localFile)
             .addOnSuccessListener( OnSuccessListener {
-                Toast.makeText(this@MainActivity, "Success to download image", Toast.LENGTH_LONG)
-                Log.d("---", "addOnSuccessListener")
                 setHasPhoto(keyShop).also {
                     it?.apply {
                         adapterShop.notifyItemChanged(this)
+                        Log.d("---", "addOnSuccessListener, idx: " +this)
                     }
                 }
             }).addOnFailureListener( OnFailureListener() {
-                Toast.makeText(this@MainActivity, "Fail to download image", Toast.LENGTH_LONG)
                 Log.d("---", "addOnFailureListener")
             });
     }
@@ -363,6 +411,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         if(key == null) {
+            Log.d("---KEY IS NULL", "TRUE")
             Log.d("---KEY IS NULL", "TRUE")
             return null
         }
@@ -449,24 +498,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-//            R.id.nav_home -> {
-//                // Handle the camera action
-//            }
-//            R.id.nav_gallery -> {
-//
-//            }
-//            R.id.nav_slideshow -> {
-//
-//            }
-//            R.id.nav_tools -> {
-//
-//            }
-//            R.id.nav_share -> {
-//
-//            }
-//            R.id.nav_send -> {
-//
-//            }
             R.id.nav_location -> {
                 val intent: Intent = Intent(this@MainActivity, ShopLocationActivity::class.java)
                 startActivity(intent)
