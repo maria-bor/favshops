@@ -33,7 +33,6 @@ import com.example.favshops.controller.ShopListAdapter
 import com.example.favshops.model.Geo
 import com.example.favshops.model.MapShops
 import com.example.favshops.model.Shop
-import com.example.favshops.model.ShopLocationActivity
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.google.firebase.auth.FirebaseAuth
@@ -63,7 +62,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private val storageDir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
     private val shopsDirectory = File(storageDir.absolutePath+"/shops/")
 
-    private lateinit var file: File
+    private var file: File? = null
     private lateinit var keyIndexMap: MutableMap<String?, Int>
     private var lat: Double = 0.0
     private var lon: Double = 0.0
@@ -71,8 +70,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     companion object {
         const val REQUIRED = "Required"
-        const val PHOTO_REQUEST = 0
-        const val LOCATION_REQUEST = 1
+        const val LOCATION_REQUEST = 0
         val mapShops = MapShops(mutableMapOf())
     }
 
@@ -141,7 +139,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         recyclerView.addOnItemTouchListener(RecyclerItemClickListener(this, recyclerView, object : RecyclerItemClickListener.OnItemClickListener {
 
             override fun onItemClick(view: View, position: Int) {
-                showShopDialog("Edit shop", mapShops.getShop(position))
+                showShopDialog("Edit shop", mapShops.getShop(position), position)
             }
 //            override fun onItemLongClick(view: View?, position: Int) {
 //                TODO("do nothing")
@@ -149,7 +147,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }))
     }
 
-    private fun showShopDialog(titleDialog: String, shopVal: Shop? = null) {
+    private fun showShopDialog(titleDialog: String, shopVal: Shop? = null, position: Int = 0) {
         val builder: AlertDialog.Builder = AlertDialog.Builder(this@MainActivity);
         val inflater: LayoutInflater = LayoutInflater.from(this@MainActivity)
         val v: View = inflater.inflate(R.layout.add_shop_dialog, null)
@@ -160,24 +158,22 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val imageShop: ImageView = v.findViewById(R.id.imageViewMakePhoto) as ImageView
         address = v.findViewById(R.id.textViewAddress) as TextView
 
-        if(shopVal != null) {
-            nameShop.text.insert(0, shopVal.name)
-            typeShop.text.insert(0, shopVal.type)
-            radiusShop.text.insert(0, shopVal.radius.toString())
-            if(shopVal.hasPhoto) {
-                val path = shopsDirectory.absolutePath + "/${shopVal.key}.jpg"
+        shopVal?.apply {
+            nameShop.text.insert(0, name)
+            typeShop.text.insert(0, type)
+            radiusShop.text.insert(0, radius.toString())
+            if(hasPhoto) {
+                val path = shopsDirectory.absolutePath + "/$key.jpg"
                 file = File(path)
-                if (file.exists()) {
-                    var bitmap: Bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                if (file!!.exists()) {
+                    val bitmap: Bitmap = BitmapFactory.decodeFile(file!!.absolutePath)
                     imageShop.setImageBitmap(bitmap)
                 }
             }
-//            address.text = shopVal.geo?.lat.toString() + " " + shopVal.geo?.lon.toString()
-
-            lat = shopVal.geo!!.lat
-            lon = shopVal.geo!!.lon
-            var geo = Geocoder(baseContext, Locale.getDefault())
-            var addressToDisplay = geo.getFromLocation(lat, lon, 1)
+            lat = geo!!.lat
+            lon = geo.lon
+            val geo = Geocoder(baseContext, Locale.getDefault())
+            val addressToDisplay = geo.getFromLocation(lat, lon, 1)
             if (addressToDisplay.size > 0) {
                 addressToDisplay[0].countryName
                 address.text =
@@ -189,7 +185,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val fabPhoto: FloatingActionButton = v.findViewById(R.id.fabPhoto)
         fabPhoto.setOnClickListener {
-            var intentPhoto = Intent(this@MainActivity, CameraActivity::class.java)
+            val intentPhoto = Intent(this@MainActivity, CameraActivity::class.java)
             startActivity(intentPhoto)
         }
 
@@ -198,9 +194,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Log.d("---", "BroadcastReceiver")
                 val path = intent?.getStringExtra("currentPhotoPath")
                 file = File(path)
-                if (file.exists()) {
-                    var bitmap: Bitmap = BitmapFactory.decodeFile(file.absolutePath)
-                    bitmap = rotateImage(file.absolutePath, bitmap)
+                if (file!!.exists()) {
+                    var bitmap: Bitmap = BitmapFactory.decodeFile(file!!.absolutePath)
+                    bitmap = rotateImage(file!!.absolutePath, bitmap)
                     imageShop.setImageBitmap(bitmap)
                     saveImageToExternalStorage(bitmap)
                 }
@@ -210,7 +206,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val fabLocal: FloatingActionButton = v.findViewById(R.id.fabMaps)
         fabLocal.setOnClickListener {
-            var intentLocation
+            val intentLocation
                     = Intent(this@MainActivity, MapsActivity::class.java)
             if(lat != 0.0 && lon != 0.0) {
                 intentLocation.putExtra("LAT", lat)
@@ -225,7 +221,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         builder.setPositiveButton("Ok", null)
         builder.setNegativeButton("Cancel", ({ dialog: DialogInterface, _: Int ->
             dialog.cancel()
-            if(::file.isInitialized && file.exists()) file.delete()
+            if(file != null && file!!.exists()) file!!.delete()
         }))
         val showDialog = builder.setCancelable(false).create()
         showDialog.show()
@@ -237,8 +233,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if (validShopInfo(nameShop, typeShop, radiusShop)) {
                 val key = writeNewShop(uidUser, nameShopSend, typeShopSend, radiusShopSend.toInt(),
                     if(shopVal != null) shopVal.key else null )
-                if (::file.isInitialized) {
-                    putImageFile(file, key)
+                file?.apply {
+                    putImageFile(this, key)
+                    file = null
+                    setHasPhoto(key)
+                    recyclerView.adapter?.notifyItemChanged(position)
                 }
                 showDialog.dismiss()
                 lat = 0.0
@@ -264,10 +263,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val storageRef: StorageReference = storage.child("images/$keyShop")
         storageRef.putFile(fileUri)
             .addOnSuccessListener( OnSuccessListener {
-                Toast.makeText(baseContext, "Success to upload image", Toast.LENGTH_LONG)
+                Toast.makeText(this@MainActivity, "Success to upload image", Toast.LENGTH_LONG)
             })
             .addOnFailureListener( OnFailureListener {
-                Toast.makeText(baseContext, "Fail to upload image", Toast.LENGTH_LONG)
+                Toast.makeText(this@MainActivity, "Fail to upload image", Toast.LENGTH_LONG)
             })
     }
 
@@ -280,7 +279,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val storageRef: StorageReference = storage.child("images/${keyShop}")
         storageRef.getFile(localFile)
             .addOnSuccessListener( OnSuccessListener {
-                Toast.makeText(baseContext, "Success to download image", Toast.LENGTH_LONG)
+                Toast.makeText(this@MainActivity, "Success to download image", Toast.LENGTH_LONG)
                 Log.d("---", "addOnSuccessListener")
                 setHasPhoto(keyShop).also {
                     it?.apply {
@@ -288,7 +287,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     }
                 }
             }).addOnFailureListener( OnFailureListener() {
-                Toast.makeText(baseContext, "Fail to download image", Toast.LENGTH_LONG)
+                Toast.makeText(this@MainActivity, "Fail to download image", Toast.LENGTH_LONG)
                 Log.d("---", "addOnFailureListener")
             });
     }
@@ -310,15 +309,15 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 lat = it.getDoubleExtra("lat", 0.0)
                 lon = it.getDoubleExtra("lon", 0.0)
 
-                var geo = Geocoder(baseContext, Locale.getDefault())
-                var addressToDisplay = geo.getFromLocation(lat, lon, 1)
+                val geo = Geocoder(baseContext, Locale.getDefault())
+                val addressToDisplay = geo.getFromLocation(lat, lon, 1)
                 if (addressToDisplay.size > 0) {
-                    addressToDisplay[0].countryName
                     address.text =
-                        addressToDisplay[0].thoroughfare + " " + addressToDisplay[0].locality + ", " + addressToDisplay[0].countryName
+                        addressToDisplay[0].thoroughfare + " " + addressToDisplay[0].featureName +
+                                ", " + addressToDisplay[0].postalCode + " " + addressToDisplay[0].locality +
+                                ", " + addressToDisplay[0].countryName
                     address.textSize = 14f
                 }
-//                    address.text = "${lat} " + (if (lat > 0) "N" else "S") + "\n ${lon} " + (if(lon > 0) "E" else "W")
                 Log.d("---", address.toString())
             }
         }
@@ -374,12 +373,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         database.updateChildren(childUpdates)
 
         val renameFile = File(storageDir.absolutePath + "/shops/$key.jpg")
-        if(::file.isInitialized && renameFile.absolutePath != file.absolutePath) {
-            if (file.renameTo(renameFile)) {
+        if(file != null && renameFile.absolutePath != file!!.absolutePath) {
+            if (file!!.renameTo(renameFile)) {
                 file = renameFile
             }
             else {
-                Log.d("---", "CANNOT RENAME\n" + file.absoluteFile+"\npath:"+file.absolutePath)
+                Log.d("---", "CANNOT RENAME\n" + file!!.absoluteFile+"\npath:"+file!!.absolutePath)
             }
         }
 
@@ -411,7 +410,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             val stream: OutputStream = FileOutputStream(file)
 
             // Compress the bitmap
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 10, stream)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 20, stream)
 
             // Flush the output stream
             stream.flush()
@@ -469,7 +468,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 //
 //            }
             R.id.nav_location -> {
-                var intent: Intent = Intent(this@MainActivity, ShopLocationActivity::class.java)
+                val intent: Intent = Intent(this@MainActivity, ShopLocationActivity::class.java)
                 startActivity(intent)
             }
             R.id.nav_logout -> {
@@ -478,12 +477,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
         val drawerLayout: DrawerLayout = findViewById(R.id.drawer_layout)
         drawerLayout.closeDrawer(GravityCompat.START)
-        return true
+
+        return false
     }
 
     private fun logout() {
         FirebaseAuth.getInstance().signOut()
-        var intent = Intent(this@MainActivity, LoginActivity::class.java)
+        val intent = Intent(this@MainActivity, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
     }

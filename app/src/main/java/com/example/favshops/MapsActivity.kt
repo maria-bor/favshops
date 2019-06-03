@@ -49,7 +49,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 putExtra("lat", latitude)
                 putExtra("lon", longitude)
             }
-            setResult(MainActivity.LOCATION_REQUEST, intent)
+            setResult(1, intent)
             finish()
         }
 

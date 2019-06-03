@@ -35,7 +35,7 @@
                 android:value="@string/google_maps_key"/>
 
         <activity
-                android:name=".model.ShopLocationActivity"
+                android:name=".ShopLocationActivity"
                 android:label="@string/title_activity_shop_location">
         </activity>
         <activity
