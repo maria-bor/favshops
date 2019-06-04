@@ -271,7 +271,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         builder.setPositiveButton("Ok", null)
         builder.setNegativeButton("Cancel", ({ dialog: DialogInterface, _: Int ->
             dialog.cancel()
-            if(file != null && file!!.exists()) file!!.delete()
+            if(shopVal == null) {
+                if(file != null && file!!.exists()) file!!.delete()
+            }
         }))
         val showDialog = builder.setCancelable(false).create()
         showDialog.show()
