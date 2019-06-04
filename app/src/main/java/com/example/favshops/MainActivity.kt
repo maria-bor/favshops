@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.location.Geocoder
 import android.media.ExifInterface
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
@@ -425,8 +426,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         val renameFile = File(storageDir.absolutePath + "/shops/$key.jpg")
         if(file != null && renameFile.absolutePath != file!!.absolutePath) {
+            val fileNamesToScan = arrayOf(file!!.absolutePath, renameFile.absolutePath)
             if (file!!.renameTo(renameFile)) {
                 file = renameFile
+                MediaScannerConnection.scanFile(
+                    applicationContext,
+                    fileNamesToScan,
+                    null,
+                    object : MediaScannerConnection.OnScanCompletedListener{
+                        override fun onScanCompleted(path: String?, uri: Uri?) {
+                        Log.d("---", "path:"+path)
+                        }
+                    } )
             }
             else {
                 Log.d("---", "CANNOT RENAME\n" + file!!.absoluteFile+"\npath:"+file!!.absolutePath)
