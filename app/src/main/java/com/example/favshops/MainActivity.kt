@@ -1,14 +1,20 @@
 package com.example.favshops
 
 import android.app.AlertDialog
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.*
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.location.Geocoder
+import android.location.LocationManager
 import android.media.ExifInterface
 import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.support.design.widget.FloatingActionButton
@@ -17,6 +23,7 @@ import android.support.v7.app.ActionBarDrawerToggle
 import android.view.MenuItem
 import android.support.v4.widget.DrawerLayout
 import android.support.design.widget.NavigationView
+import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
@@ -49,6 +56,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
 import java.util.*
+import android.Manifest
 import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
@@ -64,15 +72,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private val shopsDirectory = File(storageDir.absolutePath+"/shops/")
 
     private var file: File? = null
-    private lateinit var keyIndexMap: MutableMap<String?, Int>
+    private lateinit var keyIndexMap: MutableMap<String, Int>
     private var lat: Double = 0.0
     private var lon: Double = 0.0
     private lateinit var address: TextView
+
+    private lateinit var locationManager: LocationManager
 
     companion object {
         const val REQUIRED = "Required"
         const val LOCATION_REQUEST = 0
         val mapShops = MapShops(mutableMapOf())
+        const val ACTION_REMOVE = "favshops.remove.proximity.alert"
+        var PROXI_REQUEST_CODE = 1
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +93,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         setContentView(R.layout.activity_main)
         val toolbar: Toolbar = findViewById(R.id.toolbar)
         setSupportActionBar(toolbar)
+
+        createNotificationChannel()
+
         uidUser = FirebaseAuth.getInstance().currentUser!!.uid
 
         database = FirebaseDatabase.getInstance().reference
@@ -102,30 +118,34 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         navView.setNavigationItemSelectedListener(this)
 
         // Read from the database
-        database.child("users").child("$uidUser").addValueEventListener(object : ValueEventListener {
+        database.child("users/$uidUser").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(dataSnapshot: DataSnapshot) {
                 // This method is called once with the initial value and again
                 // whenever data at this location is updated.
                 adapterShop.clearDataset()
                 keyIndexMap.clear()
-                recyclerView.adapter = adapterShop // tak trzeba bo recycler view zostaje stare zdj jak go nie ma
+//                recyclerView.adapter = adapterShop // tak trzeba bo recycler view zostaje stare zdj jak go nie ma, ale z tym odswieza sie caly RecyclerView
 
                 recyclerView.adapter?.notifyDataSetChanged()
                 for (ds in dataSnapshot.children) {
-                    val value = ds.getValue(Shop::class.java)
-                    val name = value!!.name
-                    val type = value.type
-                    val radius = value.radius
-                    val geo: Geo? = value.geo
                     val key = ds.key
-                    val shop = Shop(name, type, radius, geo, key)
-                    val index = adapterShop.getCollection().addShop(shop)
-                    Log.d("---", "Key is: " + ds.key + ",idx:"+index)
-                    keyIndexMap.put(key, index)
-                    getImageFile(key)
-                    recyclerView.adapter?.notifyItemInserted(index)
+                    key?.also {
+                        val value = ds.getValue(Shop::class.java)
+                        val name = value!!.name
+                        val type = value.type
+                        val radius = value.radius
+                        val geo: Geo? = value.geo
+                        val shop = Shop(name, type, radius, geo, key)
+                        val index = adapterShop.getCollection().addShop(shop)
+                        keyIndexMap.put(key, index)
+                        getImageFile(key)
+                        recyclerView.adapter?.notifyItemInserted(index)
+                    }
                 }
-                Log.d("---", "Value is: ")
+
+                if(LoginActivity.proxiMap == null) {
+                    initProximity()
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
@@ -138,7 +158,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         adapterShop = ShopListAdapter(mapShops)
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this@MainActivity)
+        adapterShop.setHasStableIds(true)
         recyclerView.adapter = adapterShop
+
+        // Optymalizacja recycler view
+        recyclerView.setHasFixedSize(true)
+        recyclerView.setItemViewCacheSize(2)
+        recyclerView.isDrawingCacheEnabled = true
+        recyclerView.drawingCacheQuality = View.DRAWING_CACHE_QUALITY_LOW
+        recyclerView.isNestedScrollingEnabled = false
+
         recyclerView.addOnItemTouchListener(RecyclerItemClickListener(this,
             recyclerView, object : RecyclerItemClickListener.OnItemClickListener {
 
@@ -151,8 +180,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 val v: View = inflater.inflate(R.layout.delete_shop_dialog, null)
 
                 builder.setView(v)
-                builder.setPositiveButton("Yes", null)
-                builder.setNegativeButton("Cancel", ({ dialog: DialogInterface, _: Int ->
+                builder.setPositiveButton(R.string.yes, null)
+                builder.setNegativeButton(R.string.no, ({ dialog: DialogInterface, _: Int ->
                     dialog.cancel()
                 }))
                 val deleteDialog = builder.setCancelable(false).create()
@@ -164,11 +193,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         if(this.hasPhoto) {
                             imageToDelete.delete()
                                 .addOnSuccessListener {
-                                    Log.d("---", "delete from storage")
                                     val sdFile = File(shopsDirectory.absolutePath+"/${this.key}.jpg")
                                     if (sdFile.exists()) {
                                         sdFile.delete()
-                                        Log.d("---", "delete from sd")
                                     }
                                     removeFromDB(this.key)
                                 }
@@ -185,16 +212,45 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }))
     }
 
+    private fun initProximity() {
+        LoginActivity.proxiMap = HashMap<String, Int>()
+        val con = this
+
+        locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        locationManager.apply {
+            if(ContextCompat.checkSelfPermission(this@MainActivity,
+                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+
+                mapShops.getMapShops().forEach {
+                    Log.d("---", "shop:"+it.value.name)
+                    if (it.value.geo!!.lat != 0.0 && it.value.geo!!.lon != 0.0) {
+                        LoginActivity.proxiMap!!.put(it.value.key!!, PROXI_REQUEST_CODE)
+
+                        Log.d("---", "shop:"+it.value.geo!!.lat)
+                        val intent = Intent(con, ProximityIntentReceiver::class.java)
+                        intent.putExtra("Shop_name", it.value.name)
+                        Log.d("---", "requestCode: "+PROXI_REQUEST_CODE)
+                        val pi = PendingIntent.getBroadcast(this@MainActivity, PROXI_REQUEST_CODE++, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+
+                        addProximityAlert(it.value.geo!!.lat, it.value.geo!!.lon, it.value.radius!!.toFloat(), -1, pi)
+                    }
+                }
+            }
+        }
+    }
+
     private fun removeFromDB(keyShop: String?) {
         val query = database.child("users/$uidUser/$keyShop")
         query.removeValue()
             .addOnSuccessListener {
-                Toast.makeText(this@MainActivity, "Success to delete from database.", Toast.LENGTH_LONG).show()
-                Log.d("---", "delete from database")
+                Toast.makeText(this@MainActivity, "Success to delete from database.", Toast.LENGTH_LONG)
+//                    .show()
+                removeProxiAlert(keyShop!!)
+
             }
             .addOnFailureListener {
-                Toast.makeText(this@MainActivity, "Fail to delete from database: "+it.message, Toast.LENGTH_LONG).show()
-                Log.d("---", "fail delete from database")
+                Toast.makeText(this@MainActivity, "Fail to delete from database: "+it.message, Toast.LENGTH_LONG)
+//                    .show()
             }
     }
 
@@ -255,10 +311,12 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             }
         }, IntentFilter("com.example.favshops.PHOTO"))
 
+        var geo: Geo? = null
         val fabLocal: FloatingActionButton = v.findViewById(R.id.fabMaps)
         fabLocal.setOnClickListener {
             val intentLocation
                     = Intent(this@MainActivity, MapsActivity::class.java)
+            geo = Geo(lat, lon)
             if(lat != 0.0 && lon != 0.0) {
                 intentLocation.putExtra("LAT", lat)
                 intentLocation.putExtra("LON", lon)
@@ -293,15 +351,63 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     recyclerView.adapter?.notifyItemChanged(position)
                 }
                 showDialog.dismiss()
+                if((geo != null && (geo?.lat != lat || geo?.lon != lon)) || radiusShopSend.toInt() != shopVal?.radius) {
+                    removeProxiAlert(shopVal!!.key!!)
+                    addProxiAlert(Geo(lat, lon), key!!, nameShopSend, radiusShopSend.toInt())
+                }
+                if (shopVal == null) {
+                    if(lat != 0.0 && lon != 0.0) {
+                        addProxiAlert(Geo(lat, lon), key!!, nameShopSend, radiusShopSend.toInt())
+                    }
+                }
                 lat = 0.0
                 lon = 0.0
             }
         }
     }
 
+    private fun addProxiAlert(geo: Geo, keyShop: String, nameShop: String, radiusShop: Int) {
+        val con = this
+        if (!::locationManager.isInitialized) {
+            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        }
+
+        locationManager.apply {
+            if(ContextCompat.checkSelfPermission(this@MainActivity,
+                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                if (geo.lat != 0.0 && geo.lon != 0.0) {
+                    LoginActivity.proxiMap!!.put(keyShop, PROXI_REQUEST_CODE)
+                    val intent = Intent(con, ProximityIntentReceiver::class.java)
+                    intent.putExtra("Shop_name", nameShop)
+
+                    val pi = PendingIntent.getBroadcast(this@MainActivity, PROXI_REQUEST_CODE++, intent, PendingIntent.FLAG_UPDATE_CURRENT)
+                    addProximityAlert(geo.lat, geo.lon, radiusShop.toFloat(), -1, pi)
+                }
+            }
+        }
+    }
+
+    private fun removeProxiAlert(keyShop: String) {
+        val i = Intent()
+        i.apply {
+            action = ACTION_REMOVE
+        }
+        val pi = PendingIntent.getBroadcast(this@MainActivity,
+            LoginActivity.proxiMap?.get(keyShop)!!, i, 0)
+        if (!::locationManager.isInitialized) {
+            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        }
+        locationManager.apply {
+            if(ContextCompat.checkSelfPermission(this@MainActivity,
+                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                locationManager.removeProximityAlert(pi)
+                LoginActivity.proxiMap?.remove(keyShop)
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
-        Log.d("---", "ONRESUME")
 
         if(!shopsDirectory.exists()) {
             shopsDirectory.mkdirs()
@@ -443,7 +549,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 Log.d("---", "CANNOT RENAME\n" + file!!.absoluteFile+"\npath:"+file!!.absolutePath)
             }
         }
-
         return key
     }
 
@@ -526,11 +631,24 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return false
     }
 
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(ProximityIntentReceiver.CHANNEL_ID, "General", importance)
+
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
     private fun logout() {
         FirebaseAuth.getInstance().signOut()
         val intent = Intent(this@MainActivity, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
+        finish()
     }
 }

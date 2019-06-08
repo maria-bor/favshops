@@ -2,6 +2,7 @@ package com.example.favshops.controller
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.os.Environment
 import android.support.v7.widget.RecyclerView
 import android.util.Log
@@ -13,9 +14,18 @@ import android.widget.TextView
 import com.example.favshops.R
 import com.example.favshops.model.MapShops
 import com.example.favshops.model.Shop
+import com.squareup.picasso.Picasso
 import java.io.File
 
 class ShopListAdapter(private val dataset: MapShops) : RecyclerView.Adapter<ShopListAdapter.ListViewHolder>() {
+    private val storageDir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+    val options = BitmapFactory.Options().apply {
+        this.inPreferredConfig = Bitmap.Config.RGB_565
+        this.inSampleSize = 2
+    }
+    lateinit var bitmap: Bitmap
+    lateinit var li: LayoutInflater
+    var shop: Shop? = null
 
 
     class ListViewHolder(item: View) : RecyclerView.ViewHolder(item) {
@@ -32,36 +42,35 @@ class ShopListAdapter(private val dataset: MapShops) : RecyclerView.Adapter<Shop
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ListViewHolder {
-        val li = LayoutInflater.from(parent.context)
+        li = LayoutInflater.from(parent.context)
         val view = li.inflate(R.layout.row_shop_item, parent, false)
         return ListViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: ListViewHolder, position: Int) {
-        val shop: Shop? = dataset.getShop(position)
+        shop = dataset.getShop(position)
         holder.nameShop.text = shop!!.name
-        holder.typeShop.text = shop.type
-        holder.radiusShop.text = shop.radius.toString()
+        holder.typeShop.text = shop!!.type
+        holder.radiusShop.text = shop!!.radius.toString()
 
-        if (shop.hasPhoto) {
-            val storageDir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-            val file = File(storageDir.absolutePath + "/shops/${shop.key}" + ".jpg")
-            Log.d("---", "hasPhoto = true"+file.absoluteFile)
+        if (shop!!.hasPhoto) {
+            val file = File(storageDir.absolutePath + "/shops/${shop!!.key}" + ".jpg")
             if (file.exists()) {
-                Log.d("---", "exists()")
-                val bitmap: Bitmap = BitmapFactory.decodeFile(file.absolutePath)
+                bitmap = BitmapFactory.decodeFile(file.absolutePath)
                 holder.imageShop.setImageBitmap(bitmap)
             }
+        } else {
+            holder.imageShop.setImageResource(android.R.color.transparent)
         }
     }
 
     override fun getItemCount() = dataset.size()
 
-    fun getCollection(): MapShops {
-        return dataset
+    override fun getItemId(position: Int): Long {
+        return position.toLong()
     }
 
-    fun clearDataset() {
-        dataset.getMapShops().clear()
-    }
+    fun getCollection(): MapShops = dataset
+
+    fun clearDataset() = dataset.getMapShops().clear()
 }

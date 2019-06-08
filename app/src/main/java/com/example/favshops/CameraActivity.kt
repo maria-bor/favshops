@@ -17,7 +17,6 @@ class CameraActivity : AppCompatActivity() {
 
     private lateinit var currentPhotoPath: String
     private val REQUEST_TAKE_PHOTO = 1
-    private val photoURIForAddShop: Uri = Uri.EMPTY
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +26,6 @@ class CameraActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        Log.d("---", "onActivityResult")
         if (requestCode == REQUEST_TAKE_PHOTO) {
             if(resultCode == RESULT_OK) {
                 Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).also { mediaScanIntent ->

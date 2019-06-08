@@ -23,6 +23,10 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
     private lateinit var database: DatabaseReference
     private lateinit var auth: FirebaseAuth
 
+    companion object {
+        var proxiMap: HashMap<String, Int>? = null
+    }
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
@@ -47,7 +51,7 @@ class LoginActivity : AppCompatActivity(), View.OnClickListener {
                 if (task.isSuccessful) {
                     // Sign in success, update UI with the signed-in user's information
                     val user = auth.currentUser
-                    database.child("users/${user!!.uid}/username").setValue(user?.email)
+                    database.child("users/${user!!.uid}/username").setValue(user.email)
                     updateUI(user)
                 } else {
                     val builder: AlertDialog.Builder = AlertDialog.Builder(this@LoginActivity);
