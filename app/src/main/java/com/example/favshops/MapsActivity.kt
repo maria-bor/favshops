@@ -111,8 +111,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun onLocationChanged(location: Location) {
-        Log.d("---", "onLocationChanged")
-
         latitude = location.latitude
         longitude = location.longitude
 
@@ -124,20 +122,17 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
-        Log.d("---", "onMapReady")
 
         marker = mMap.addMarker(MarkerOptions().position(LatLng(latitude, longitude)).title("Current Location"))
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 12.0f))
 
         mMap.setOnCameraMoveListener {
             marker.position = mMap.cameraPosition.target
-            Log.d("---", "setOnCameraMoveListener")
         }
 
         mMap.setOnCameraIdleListener{
             latitude = mMap.cameraPosition.target.latitude
             longitude= mMap.cameraPosition.target.longitude
-            Log.d("---", "setOnCameraIdleListener"+ latitude + " " + longitude)
         }
     }
 }

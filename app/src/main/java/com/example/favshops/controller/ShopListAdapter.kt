@@ -2,10 +2,8 @@ package com.example.favshops.controller
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.os.Environment
 import android.support.v7.widget.RecyclerView
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,7 +12,6 @@ import android.widget.TextView
 import com.example.favshops.R
 import com.example.favshops.model.MapShops
 import com.example.favshops.model.Shop
-import com.squareup.picasso.Picasso
 import java.io.File
 
 class ShopListAdapter(private val dataset: MapShops) : RecyclerView.Adapter<ShopListAdapter.ListViewHolder>() {

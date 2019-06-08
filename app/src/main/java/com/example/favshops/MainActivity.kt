@@ -85,7 +85,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val mapShops = MapShops(mutableMapOf())
         const val ACTION_REMOVE = "favshops.remove.proximity.alert"
         var PROXI_REQUEST_CODE = 1
-
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,18 +127,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
                 recyclerView.adapter?.notifyDataSetChanged()
                 for (ds in dataSnapshot.children) {
-                    val key = ds.key
-                    key?.also {
-                        val value = ds.getValue(Shop::class.java)
-                        val name = value!!.name
-                        val type = value.type
-                        val radius = value.radius
-                        val geo: Geo? = value.geo
-                        val shop = Shop(name, type, radius, geo, key)
-                        val index = adapterShop.getCollection().addShop(shop)
-                        keyIndexMap.put(key, index)
-                        getImageFile(key)
-                        recyclerView.adapter?.notifyItemInserted(index)
+                    if(ds.key != "username") {
+                        val key = ds.key
+                        key?.also {
+                            val value = ds.getValue(Shop::class.java)
+                            val name = value!!.name
+                            val type = value.type
+                            val radius = value.radius
+                            val geo: Geo? = value.geo
+                            val shop = Shop(name, type, radius, geo, key)
+                            val index = adapterShop.getCollection().addShop(shop)
+                            keyIndexMap.put(key, index)
+                            getImageFile(key)
+                            recyclerView.adapter?.notifyItemInserted(index)
+                        }
                     }
                 }
 
@@ -150,7 +151,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
             override fun onCancelled(error: DatabaseError) {
                 // Failed to read value
-                Log.w("---", "Failed to read value.", error.toException())
             }
         })
 
@@ -222,14 +222,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
                 mapShops.getMapShops().forEach {
-                    Log.d("---", "shop:"+it.value.name)
                     if (it.value.geo!!.lat != 0.0 && it.value.geo!!.lon != 0.0) {
                         LoginActivity.proxiMap!!.put(it.value.key!!, PROXI_REQUEST_CODE)
 
-                        Log.d("---", "shop:"+it.value.geo!!.lat)
                         val intent = Intent(con, ProximityIntentReceiver::class.java)
                         intent.putExtra("Shop_name", it.value.name)
-                        Log.d("---", "requestCode: "+PROXI_REQUEST_CODE)
                         val pi = PendingIntent.getBroadcast(this@MainActivity, PROXI_REQUEST_CODE++, intent, PendingIntent.FLAG_UPDATE_CURRENT)
 
                         addProximityAlert(it.value.geo!!.lat, it.value.geo!!.lon, it.value.radius!!.toFloat(), -1, pi)
@@ -351,15 +348,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     recyclerView.adapter?.notifyItemChanged(position)
                 }
                 showDialog.dismiss()
-                if((geo != null && (geo?.lat != lat || geo?.lon != lon)) || radiusShopSend.toInt() != shopVal?.radius) {
-                    removeProxiAlert(shopVal!!.key!!)
-                    addProxiAlert(Geo(lat, lon), key!!, nameShopSend, radiusShopSend.toInt())
-                }
                 if (shopVal == null) {
                     if(lat != 0.0 && lon != 0.0) {
                         addProxiAlert(Geo(lat, lon), key!!, nameShopSend, radiusShopSend.toInt())
                     }
                 }
+                else if((geo != null && (geo?.lat != lat || geo?.lon != lon)) ||
+                    (shopVal != null && radiusShopSend.toInt() != shopVal?.radius)) {
+                    removeProxiAlert(shopVal!!.key!!)
+                    addProxiAlert(Geo(lat, lon), key!!, nameShopSend, radiusShopSend.toInt())
+                }
+
                 lat = 0.0
                 lon = 0.0
             }
@@ -388,20 +387,27 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun removeProxiAlert(keyShop: String) {
-        val i = Intent()
-        i.apply {
-            action = ACTION_REMOVE
-        }
-        val pi = PendingIntent.getBroadcast(this@MainActivity,
-            LoginActivity.proxiMap?.get(keyShop)!!, i, 0)
-        if (!::locationManager.isInitialized) {
-            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        }
-        locationManager.apply {
-            if(ContextCompat.checkSelfPermission(this@MainActivity,
-                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                locationManager.removeProximityAlert(pi)
-                LoginActivity.proxiMap?.remove(keyShop)
+        if (LoginActivity.proxiMap!!.contains(keyShop)) {
+            val i = Intent()
+            i.apply {
+                action = ACTION_REMOVE
+            }
+            val pi = PendingIntent.getBroadcast(
+                this@MainActivity,
+                LoginActivity.proxiMap?.get(keyShop)!!, i, 0
+            )
+            if (!::locationManager.isInitialized) {
+                locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            }
+            locationManager.apply {
+                if (ContextCompat.checkSelfPermission(
+                        this@MainActivity,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    locationManager.removeProximityAlert(pi)
+                    LoginActivity.proxiMap?.remove(keyShop)
+                }
             }
         }
     }
@@ -431,8 +437,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val localFile = File(storageDir.absolutePath+"/shops/${keyShop}.jpg")
         if (localFile.exists()) {
             setHasPhoto(keyShop)
-            Log.d("---", "setHasPhotoSD, keyShop: " +keyShop)
-
             return
         }
         val storageRef: StorageReference = storage.child("images/${keyShop}")
@@ -441,11 +445,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 setHasPhoto(keyShop).also {
                     it?.apply {
                         adapterShop.notifyItemChanged(this)
-                        Log.d("---", "addOnSuccessListener, idx: " +this)
                     }
                 }
             }).addOnFailureListener( OnFailureListener() {
-                Log.d("---", "addOnFailureListener")
             });
     }
 
@@ -454,7 +456,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         idx?.apply {
             adapterShop.getCollection().getMapShops()[this]?.apply {
                 hasPhoto = true
-                Log.d("---", "hasPhoto = true"+idx)
             }
         }
         return idx
@@ -475,11 +476,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                                 ", " + addressToDisplay[0].countryName
                     address.textSize = 14f
                 }
-                Log.d("---", address.toString())
             }
         }
         super.onActivityResult(requestCode, resultCode, data)
-        Log.d("---", "onActivityResult")
     }
 
     private fun validShopInfo(nameShopSend: EditText, typeShopSend: EditText, radiusShopSend: EditText): Boolean {
@@ -520,8 +519,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         if(key == null) {
-            Log.d("---KEY IS NULL", "TRUE")
-            Log.d("---KEY IS NULL", "TRUE")
             return null
         }
         val shop = Shop(nameShop, typeShop, radiusShop, Geo(lat, lon))
@@ -544,9 +541,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                         Log.d("---", "path:"+path)
                         }
                     } )
-            }
-            else {
-                Log.d("---", "CANNOT RENAME\n" + file!!.absoluteFile+"\npath:"+file!!.absolutePath)
             }
         }
         return key
@@ -644,11 +638,19 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun logout() {
+        LoginActivity.proxiMap?.forEach {
+            removeProxiAlert(it.key)
+        }
         FirebaseAuth.getInstance().signOut()
         val intent = Intent(this@MainActivity, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
         startActivity(intent)
         finish()
+    }
+
+    override fun onDestroy() {
+        Log.d("---", "DESTROY")
+        super.onDestroy()
     }
 }
