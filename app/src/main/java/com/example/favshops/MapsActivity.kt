@@ -117,14 +117,14 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         val loc = LatLng(location.latitude, location.longitude)
         mMap.clear()
         marker = mMap.addMarker(MarkerOptions().position(loc).title("Current Location"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(loc, 12.0f))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(loc, 16.0f))
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
         marker = mMap.addMarker(MarkerOptions().position(LatLng(latitude, longitude)).title("Current Location"))
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 12.0f))
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 16.0f))
 
         mMap.setOnCameraMoveListener {
             marker.position = mMap.cameraPosition.target

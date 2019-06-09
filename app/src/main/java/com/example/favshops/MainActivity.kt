@@ -295,7 +295,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         registerReceiver(object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
-                Log.d("---", "BroadcastReceiver")
                 val path = intent?.getStringExtra("currentPhotoPath")
                 file = File(path)
                 if (file!!.exists()) {
@@ -304,7 +303,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     imageShop.setImageBitmap(bitmap)
                     saveImageToExternalStorage(bitmap)
                 }
-                Log.d("---", "BroadcastReceiver"+path)
             }
         }, IntentFilter("com.example.favshops.PHOTO"))
 
@@ -330,6 +328,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             if(shopVal == null) {
                 if(file != null && file!!.exists()) file!!.delete()
             }
+            lat = 0.0
+            lon = 0.0
+            file = null
         }))
         val showDialog = builder.setCancelable(false).create()
         showDialog.show()
@@ -348,17 +349,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     recyclerView.adapter?.notifyItemChanged(position)
                 }
                 showDialog.dismiss()
+
                 if (shopVal == null) {
                     if(lat != 0.0 && lon != 0.0) {
                         addProxiAlert(Geo(lat, lon), key!!, nameShopSend, radiusShopSend.toInt())
                     }
                 }
                 else if((geo != null && (geo?.lat != lat || geo?.lon != lon)) ||
-                    (shopVal != null && radiusShopSend.toInt() != shopVal?.radius)) {
-                    removeProxiAlert(shopVal!!.key!!)
+                    (shopVal != null && radiusShopSend.toInt() != shopVal.radius)) {
+                    removeProxiAlert(shopVal.key!!)
                     addProxiAlert(Geo(lat, lon), key!!, nameShopSend, radiusShopSend.toInt())
                 }
-
                 lat = 0.0
                 lon = 0.0
             }
@@ -588,9 +589,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START)
         }
-//        else {
-//            super.onBackPressed()
-//        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -638,9 +636,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun logout() {
-        LoginActivity.proxiMap?.forEach {
-            removeProxiAlert(it.key)
-        }
+//        LoginActivity.proxiMap?.forEach {
+//            removeProxiAlert(it.key)
+//        }
         FirebaseAuth.getInstance().signOut()
         val intent = Intent(this@MainActivity, LoginActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
